@@ -37,7 +37,8 @@ function initModeSwitch() {
 
             // 切换语言设置
             if (mode === 'stt') {
-                sttService.setLanguage(document.getElementById('language-select').value);
+                const lang = document.getElementById('language-select').value;
+                sttService.setLanguage(lang);
             }
         });
     });
@@ -52,8 +53,8 @@ function initCodeCopy() {
     copyBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.dataset.target;
-            const codeBlock = document.querySelector(`#${targetId} pre code`) || 
-                            document.querySelector(`[data-target="${targetId}"] pre code`);
+            const codeBlock = document.querySelector(`pre[data-target="${targetId}"] code`) || 
+                            document.querySelector(`.code-block [data-target="${targetId}"] code`);
             
             if (codeBlock) {
                 const text = codeBlock.textContent;
@@ -111,6 +112,11 @@ function initTTS() {
             return;
         }
 
+        if (text.length > 5000) {
+            alert('文本长度超过 5000 字，请缩短后重试');
+            return;
+        }
+
         generateBtn.textContent = '⏳ 生成中...';
         generateBtn.disabled = true;
 
@@ -131,4 +137,120 @@ function initTTS() {
             downloadBtn.onclick = () => {
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `voice-${Date.now()
+                a.download = `voice-${Date.now()}.mp3`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            alert('✅ 语音生成成功！');
+        } catch (error) {
+            console.error('❌ 生成失败:', error);
+            alert('❌ 语音生成失败，请重试');
+        } finally {
+            generateBtn.textContent = '🔊 生成语音';
+            generateBtn.disabled = false;
+        }
+    });
+
+    // 播放语音
+    playBtn.addEventListener('click', () => {
+        const text = ttsInput.value.trim();
+        if (!text) return;
+
+        const voice = voiceSelect.value;
+        const speed = parseFloat(speedRange.value);
+        const pitch = parseFloat(pitchRange.value);
+
+        ttsService.play(text, voice, speed, pitch);
+        playBtn.disabled = true;
+        stopBtn.disabled = false;
+    });
+
+    // 停止播放
+    stopBtn.addEventListener('click', () => {
+        ttsService.stop();
+        playBtn.disabled = false;
+        stopBtn.disabled = true;
+    });
+}
+
+/**
+ * STT 功能初始化
+ */
+function initSTT() {
+    const sttStart = document.getElementById('stt-start');
+    const sttStop = document.getElementById('stt-stop');
+    const sttOutput = document.getElementById('stt-output');
+    const sttCopy = document.getElementById('stt-copy');
+    const sttToTts = document.getElementById('stt-to-tts');
+    const sttClear = document.getElementById('stt-clear');
+
+    // 开始录音
+    sttStart.addEventListener('click', () => {
+        sttService.startListening();
+    });
+
+    // 停止录音
+    sttStop.addEventListener('click', () => {
+        sttService.stopListening();
+    });
+
+    // 复制文本
+    sttCopy.addEventListener('click', () => {
+        sttOutput.select();
+        document.execCommand('copy');
+        sttCopy.textContent = '✅ 已复制';
+        setTimeout(() => {
+            sttCopy.textContent = '📋 复制文本';
+        }, 2000);
+    });
+
+    // 转为语音
+    sttToTts.addEventListener('click', () => {
+        const text = sttOutput.value.trim();
+        if (!text) {
+            alert('没有可转换的文本');
+            return;
+        }
+
+        // 切换到 TTS 模式
+        document.querySelector('[data-mode="tts"]').click();
+        document.getElementById('tts-input').value = text;
+    });
+
+    // 清空
+    sttClear.addEventListener('click', () => {
+        sttOutput.value = '';
+    });
+}
+
+/**
+ * 字符计数
+ */
+function initCharacterCount() {
+    const ttsInput = document.getElementById('tts-input');
+    const charCount = document.getElementById('char-count');
+
+    ttsInput.addEventListener('input', () => {
+        const count = ttsInput.value.length;
+        charCount.textContent = count;
+        
+        if (count > 5000) {
+            charCount.style.color = '#ef4444';
+        } else if (count > 4000) {
+            charCount.style.color = '#f59e0b';
+        } else {
+            charCount.style.color = '#6b7280';
+        }
+    });
+}
+
+/**
+ * 页面卸载时清理资源
+ */
+window.addEventListener('beforeunload', () => {
+    // 停止 TTS 播放
+    if (ttsService) {
+        ttsService.stop();
+    }
+});
