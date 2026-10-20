@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initTTS();
     initSTT();
     initCharacterCount();
-    initCodeCopy();
 });
 
 /**
@@ -37,37 +36,7 @@ function initModeSwitch() {
 
             // 切换语言设置
             if (mode === 'stt') {
-                const lang = document.getElementById('language-select').value;
-                sttService.setLanguage(lang);
-            }
-        });
-    });
-}
-
-/**
- * 代码块复制功能
- */
-function initCodeCopy() {
-    const copyBtns = document.querySelectorAll('.copy-btn');
-
-    copyBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.dataset.target;
-            const codeBlock = document.querySelector(`pre[data-target="${targetId}"] code`) || 
-                            document.querySelector(`.code-block [data-target="${targetId}"] code`);
-            
-            if (codeBlock) {
-                const text = codeBlock.textContent;
-                navigator.clipboard.writeText(text).then(() => {
-                    const originalText = btn.textContent;
-                    btn.textContent = '✅ 已复制';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                    }, 2000);
-                }).catch(err => {
-                    console.error('复制失败:', err);
-                    alert('复制失败，请手动复制');
-                });
+                sttService.setLanguage(document.getElementById('language-select').value);
             }
         });
     });
@@ -109,11 +78,6 @@ function initTTS() {
         const text = ttsInput.value.trim();
         if (!text) {
             alert('请输入要转换的文本');
-            return;
-        }
-
-        if (text.length > 5000) {
-            alert('文本长度超过 5000 字，请缩短后重试');
             return;
         }
 
@@ -236,21 +200,4 @@ function initCharacterCount() {
         charCount.textContent = count;
         
         if (count > 5000) {
-            charCount.style.color = '#ef4444';
-        } else if (count > 4000) {
-            charCount.style.color = '#f59e0b';
-        } else {
-            charCount.style.color = '#6b7280';
-        }
-    });
-}
-
-/**
- * 页面卸载时清理资源
- */
-window.addEventListener('beforeunload', () => {
-    // 停止 TTS 播放
-    if (ttsService) {
-        ttsService.stop();
-    }
-});
+            charCount.style.color = '#ef4
